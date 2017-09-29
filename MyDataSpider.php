@@ -2,7 +2,7 @@
 /*	Name : MyDataSpider System;
 	FOR : www.yaozhibiao.com & into yaozhibao.com Mysql;
 */
-namespace Rds;
+namespace Mds;
 
 //一些常用的定义
 define('Apps', 'app');
@@ -62,7 +62,7 @@ class Mds
 
 }
 
-$mds = new Rds();
+$mds = new Mds();
 $mds->ShowNames();
 $mds->Main($argv, $argc);
 ?>
