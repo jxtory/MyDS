@@ -1,0 +1,44 @@
+/*
+数据表
+	前缀：myds_
+	表：
+		name		Visited_Url			comment=访问过的Url（过滤）
+		field
+			id					primary
+			url					varchar
+			encryption_url		varchar	comment=md5
+			title				varchar
+			on_depth			int
+			http_statuscode		varchar
+			filesize			varchar
+			oid					int
+
+	表：
+		name		UrlListTask			comment=任务库URL-List
+		field
+			id					primary
+			pid					int
+			url 				varchar
+			encryption_url		varchar	comment=md5
+			on_depth			int
+			http_statuscode		varchar
+
+
+	表：
+		name		RunInfo_Log			comment=运行信息日志
+		filed
+			id					primary
+			startDate			long
+			endDate				long
+			runDate				long
+			find_url			int
+			recordTotal			int
+
+	表：
+		name		Spider_Datas		comment=数据
+			id					primary
+			contents 			text
+			parent_label		text
+			from_url			text
+			on_Url_depth		int
+*/
