@@ -410,7 +410,7 @@ class Mds
 				//记录上一次的深度
 				$this->prevDepth = $this->curDepth;
 				//深度递增
-				if($this->curDepth == ($this->maxDepth - 1){
+				if($this->curDepth == ($this->maxDepth - 1)){
 					$this->curDepth = 2;
 				} else {
 					$this->curDepth++;
