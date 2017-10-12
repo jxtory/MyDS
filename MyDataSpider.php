@@ -774,6 +774,12 @@ function getFile($file)
 
 function checkUrl($url, $ad = true)
 {
+	//预判url
+	if(substr($url, strlen($url)-4, 4) == ".dtd"){return 0;} 
+	if(substr($url, strlen($url)-4, 4) == ".css"){return 0;} 
+	if(substr($url, strlen($url)-3, 3) == ".js"){return 0;} 
+	if($url == "http://www.w3.org/1999/xhtml"){return 0;}
+	//End 预判
 	//返回url状态码
 	$ch = curl_init($url);
 	$timeout = 10;
