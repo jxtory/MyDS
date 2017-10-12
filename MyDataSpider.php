@@ -83,7 +83,7 @@ class Mds
 	function __construct()
 	{
 		//调试模式
-		$this->app_debug = true;
+		$this->app_debug = false;
 		//start
 		$this->showProject();
 		//载入配置文件
@@ -126,10 +126,23 @@ class Mds
 
 	function __destruct()
 	{
+
+		//记录运行信息
+		$this->info_EndDate = time();
+		$this->info_RunDate = $this->info_EndDate - $this->info_StartDate;
+		$res = $this->opMysqladdToRL($this->info_StartDate, $this->info_EndDate, $this->info_RunDate, $this->info_FindUrl, $this->info_RecordTotal);
+		if($res){
+			echo "Log write successful";
+			er();
+		}
+		//End 记录运行信息
+
+		//卸载数据库
 		if(!empty($this->mysql)){
 			$this->mysql->close();
 			$this->mysql = null;
 		}
+		//End 卸载数据库
 	}
 
 	public function Main($argv = "", $argc = "")
@@ -143,7 +156,7 @@ class Mds
 			//set depth 不能小于1 不能超过20
 			$this->maxDepth = $argv[1];
 			$this->maxDepth = floor($this->maxDepth);
-			if($this->maxDepth < 1){$this->maxDepth = 1;}
+			if($this->maxDepth < 2){$this->maxDepth = 2;}
 			if($this->maxDepth > 20){$this->maxDepth = 20;}
 			//验证种子url
 			if(preg_match(rxUrl, $argv[2]) == 1){
@@ -272,7 +285,7 @@ class Mds
 					echo "Data acquisition complete. The url add to \"Visited_Url\"";
 					er();
 				} else {
-					echo "Fail.";
+					echo "The url add to \"Visited_Url\" Fail.";
 					er();
 					// exit();
 				}
@@ -297,9 +310,6 @@ class Mds
 
 		//新添加URL-List
 		$urls = $datas[1];
-		//统计找到网址
-		$this->info_FindUrl += count($urls);
-		//End 统计找到网址
 		$pid = $url[5];
 		if(is_array($urls) || count($urls) > 0){
 			foreach ($urls as $key => $value) {
@@ -309,7 +319,10 @@ class Mds
 				$res2 = $this->opMysqlQuery($sql);
 				if($res && $res2){
 					if($res->num_rows == 0 && $res2->num_rows == 0){
-						$this->opMysqladdToULT($value, $this->curDepth + 1, $pid, checkUrl($value, false));
+						//当前深度不得等于最大深度，因为下一个深度不能超过 最大深度 maxDepth
+						if($this->curDepth != $this->maxDepth){
+							$this->opMysqladdToULT($value, $this->curDepth + 1, $pid, checkUrl($value, false));
+						}
 					}
 					// mysqli_free_result($res);
 					// mysqli_free_result($res2);
@@ -356,10 +369,7 @@ class Mds
 			} else {
 				$j = 0;
 				for ($i=2; $i < $datacount; $i++) { 
-					//统计找到内容
 					$temp = null;
-					$this->info_RecordTotal += count($datas[$i]);
-					//end 统计找到内容
 					$temp[] = $regex[$j];
 					$temp[] = $datas[$i];
 					$j++;
@@ -400,7 +410,7 @@ class Mds
 				//记录上一次的深度
 				$this->prevDepth = $this->curDepth;
 				//深度递增
-				if($this->curDepth == $this->maxDepth){
+				if($this->curDepth == ($this->maxDepth - 1){
 					$this->curDepth = 2;
 				} else {
 					$this->curDepth++;
@@ -443,20 +453,33 @@ class Mds
 		return $result;
 	}
 
+	private function opMysqladdToRL($sd = 0, $ed = 0, $rd = 0, $fu = 0, $rT = 0)
+	{
+		$sql = "insert into {$this->table_rl}(startDate, endDate, runDate, find_url, recordTotal)";
+		$sql .= "values(?, ?, ?, ?, ?)";
+		$mstmt = $this->opMysqlPrepare($sql);
+		$mstmt->bind_param("iiiii", $sd, $ed, $rd, $fu, $rT);
+		$rb = $mstmt->execute();
+		$mstmt->free_result();
+		$mstmt->close();
+		if($rb){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	private function opMysqladdToSD($cs = "", $rod = "", $fu = "", $oud = 0)
 	{
-		$sqlt = "select * from {$this->table_sd} where";
-		$sqlt .= " contents = \"{$cs}\"";
-		$sqlt .= " and ruleordom = \"{$rod}\"";
-		$sqlt .= " and from_url = \"{$fu}\"";
-		$sqlt .= " and on_Url_depth = {$oud}";
-		$res = $this->opMysqlQuery($sqlt);
+		//判断内容重复
+		$sql = "select contents from {$this->table_sd} where contents = \"{$cs}\" and from_url = \"{$fu}\"";
+		$res = $this->opMysqlQuery($sql);
 		if($res){
 			if($res->num_rows > 0){
-				echo $sqlt . PHP_EOL;
 				return false;
 			}
 		}
+		//添加内容到数据表
 		$sql = "insert into {$this->table_sd}(contents, ruleordom, from_url, on_Url_depth) ";
 		// $sql .= "values(\"{$cs}\", \"{$rod}\", \"{$fu}\", {$oud})";
 		$sql .= "values(?, ?, ?, ?)";
@@ -464,9 +487,16 @@ class Mds
 		$mstmt = $this->opMysqlPrepare($sql);
 		$mstmt->bind_param("sssi", $cs, $rod, $fu, $oud);
 		$rb = $mstmt->execute();
+		$mstmt->free_result();
 		$mstmt->close();
 
+		//返回值
 		if($rb){
+			//统计找到内容
+			$this->info_RecordTotal++;
+			// $this->info_RecordTotal += count($datas[$i]);
+			//end 统计找到内容
+
 			return true;
 		} else {
 			return false;
@@ -481,6 +511,11 @@ class Mds
 		$res = $this->opMysqlQuery($sql);
 
 		if($res){
+			//统计找到网址
+			$this->info_FindUrl++;
+			// $this->info_FindUrl += count($urls);
+			//End 统计找到网址
+
 			return true;
 		} else {
 			return false;
@@ -584,7 +619,7 @@ class Mds
 		//	传送数据至数据库
 		if($datas == "pass"){
 			if($this->app_debug){
-				echo "pass a data";
+				echo "Discard a data.";
 				er();
 			}
 			return "pass";
@@ -592,12 +627,10 @@ class Mds
 			$datacount = count($datas);
 			//debug
 			if($this->app_debug){
-				echo "in function transDataToMysql.";
-				var_dump($datas);
+				echo "In Function transDataToMysql.\tCount: \t{$datacount}.";
 				er();
 			}
 			//end debug
-
 
 			for ($i=0; $i < $datacount; $i++) { 
 				//debug
@@ -611,7 +644,7 @@ class Mds
 					//debug
 					if($this->app_debug){
 						er();
-						echo "**{$value}**";
+						echo "Value:\t\"{$value}\" into Mysql Table.";
 						er();
 					}
 					//end debug
@@ -705,16 +738,6 @@ class Mds
 			foreach($regex as $key => $value){
 				preg_match_all($value, $contents, $data);
 				$datas[] = $data[$rxopt[$key]];
-				// //debug
-				// if($this->app_debug){
-				// 	echo "Now.regex:\t{$value}";
-				// 	foreach ($data[$rxopt[$key]] as $key2 => $value) {
-				// 		echo "----";
-				// 		echo $value;
-				// 		echo "----";
-				// 	}
-				// }
-				// //end debug
 			}
 
 
