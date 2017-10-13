@@ -772,13 +772,40 @@ function getFile($file)
 	}
 }
 
+function checkExit()
+{
+	if(is_file("exit")){
+		er('You chose to terminate the task.');
+		exit();
+	}
+}
+
+function checkUrlExc($url)
+{
+	$config = getFile(Apps . DS . ConfigFile);
+	if(!isset($config['urlexc'])){
+		// er('Warning:');
+		// er("1.\tThere are no urlexc rules in the Config file");
+		// er("2.\tPlease check the Config file");
+		// er("3.\tSet the format for'urlexc'=> [\".Css\", ***]");
+		return true;
+	} else {
+		$config = $config['urlexc'];
+		foreach ($config as $key => $value) {
+			if(strpos($url, $value)){return false;}
+		}
+		// if(substr($url, strlen($url)-4, 4) == ".dtd"){return 0;} 
+		// if(strpos($url, 'hao123.com')){return 0;}
+		return true;
+	}
+
+}
+
 function checkUrl($url, $ad = true)
 {
+	checkExit();
 	//预判url
-	if(substr($url, strlen($url)-4, 4) == ".dtd"){return 0;} 
-	if(substr($url, strlen($url)-4, 4) == ".css"){return 0;} 
-	if(substr($url, strlen($url)-3, 3) == ".js"){return 0;} 
-	if($url == "http://www.w3.org/1999/xhtml"){return 0;}
+	if(!checkUrlExc($url)){return 0;}
 	//End 预判
 	//返回url状态码
 	$ch = curl_init($url);

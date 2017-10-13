@@ -8,5 +8,15 @@ return [
 		'fromdb'	=>	'myds'
 	],
 	'mysql_pfname' => 'myds_',
+	'urlexc' => [
+		'.css',
+		'.js',
+		'.dtd',
+		'.ttf',
+		'.jpg',
+		'.gif',
+		'.png',
+		'www.w3.org',
+	]
 
 ];
