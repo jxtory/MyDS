@@ -320,7 +320,7 @@ class Mds
 				if($res && $res2){
 					if($res->num_rows == 0 && $res2->num_rows == 0){
 						//当前深度不得等于最大深度，因为下一个深度不能超过 最大深度 maxDepth
-						if($this->curDepth != $this->maxDepth){
+						if($this->curDepth < $this->maxDepth){
 							$this->opMysqladdToULT($value, $this->curDepth + 1, $pid, checkUrl($value, false));
 						}
 					}
