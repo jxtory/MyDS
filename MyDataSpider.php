@@ -39,6 +39,7 @@ class Mds
 		$curUrl 				当前URL
 		$nextUrl 				下一次URL
 		$pid 					父任务
+		$byhost 				来源主机
 		--infomation
 		$info_StartDate			开始时间
 		$info_EndDate			结束时间
@@ -68,6 +69,7 @@ class Mds
 	protected $curUrl = null;
 	protected $nextUrl = null;
 	protected $pid = null;
+	protected $byhost = null;
 	//infomation
 	protected $info_StartDate = null;
 	protected $info_EndDate = null;
@@ -198,10 +200,10 @@ class Mds
 		//End Show
 		//统计时间
 		$this->info_StartDate = time();
-
 		//End 统计时间
 		//初始化URL-List任务库
 		$this->opMysqltcult();
+		$this->opMysqltcAll(); // 可选的
 		$this->curDepth = 1;
 		$hsc = checkUrl($this->seedUrl);
 		$res = $this->opMysqladdToULT($this->seedUrl, $this->curDepth, 1, $hsc);
@@ -216,6 +218,8 @@ class Mds
 			$this->seedUrl = null;
 			//End 释放种子
 			$this->curUrl = $su;
+			// $this->byhost = parse_url($su)['host'];
+			$this->byhost = getHostDomain($su);
 			$this->nextUrl = $su;
 			if(preg_match(rxUrl, $su) == 1){
 				while($this->nextUrl != null){
@@ -409,12 +413,12 @@ class Mds
 			if($res || $res == "pass"){
 				//记录上一次的深度
 				$this->prevDepth = $this->curDepth;
-				//深度递增
-				if($this->curDepth > ($this->maxDepth - 1)){
-					$this->curDepth = 2;
-				} else {
-					$this->curDepth++;
-				}
+				// //深度递增
+				// if($this->curDepth > ($this->maxDepth - 1)){
+				// 	$this->curDepth = 2;
+				// } else {
+				// 	$this->curDepth++;
+				// }
 				//从任务库中 提取新URL;
 				$this->nextUrl = $this->opMysqlgetUrlFromULT($this->curDepth);
 
@@ -449,6 +453,9 @@ class Mds
 
 	private function opMysqlQuery($sql)
 	{
+		//debug
+		if($this->app_debug){er($sql);}
+		//end debug
 		$result = $this->mysql->query($sql);
 		return $result;
 	}
@@ -563,11 +570,11 @@ class Mds
 				} else {
 					//记录深度
 					$this->prevDepth = $this->curDepth;
-					//深度递减
-					if($this->curDepth > 2){
-						$this->curDepth--;
+					//深度递增
+					if($this->curDepth < $this->maxDepth){
+						$this->curDepth++;
 					} else {
-						return null;
+						return "";
 					}
 					//从任务库中 提取新URL;
 					return $this->opMysqlgetUrlFromULT($this->curDepth);
@@ -576,11 +583,11 @@ class Mds
 			} else {
 				//记录深度
 				$this->prevDepth = $this->curDepth;
-				//深度递减
-				if($this->curDepth > 2){
-					$this->curDepth--;
+				//深度递增
+				if($this->curDepth < $this->maxDepth){
+					$this->curDepth++;
 				} else {
-					return null;
+					return "";
 				}
 				//从任务库中 提取新URL;
 				return $this->opMysqlgetUrlFromULT($this->curDepth);
@@ -600,7 +607,26 @@ class Mds
 
 	private function opMysqltcult()
 	{
+		//debug
+		if($this->app_debug){er('Clear ULT Mysql Datas');}
+		//end debug
+
 		$result = $this->opMysqlQuery("truncate table {$this->table_ult}");
+		return;
+	}
+
+	private function opMysqltcAll()
+	{
+		if(isset($this->config['clearOld']) && $this->config['clearOld'] == true){
+			$res = $this->opMysqlQuery("truncate table {$this->table_ult}");
+			$res = $this->opMysqlQuery("truncate table {$this->table_vu}");
+			$res = $this->opMysqlQuery("truncate table {$this->table_sd}");
+			$res = $this->opMysqlQuery("truncate table {$this->table_rl}");
+			//debug
+			if($this->app_debug){er('Clear All Mysql Datas');}
+			//end debug
+		}
+
 		return;
 	}
 
@@ -722,7 +748,7 @@ class Mds
 			preg_match_all(rxUrl, $contents, $temp);
 
 			foreach ($temp[0] as $key => $value) {
-				$res = checkUrl($value);
+				$res = checkUrl($value, true, $this->byhost);
 				if($res != 0 && $res > 199 && $res < 300)	{
 					$value = str_replace('"', "", $value);
 					$data[] = $value;
@@ -772,11 +798,47 @@ function getFile($file)
 	}
 }
 
+function getHostDomain($url)
+{
+	if(parse_url($url)){
+	    $p = '/\w*\.(\w*\.\w*)/i';
+	    $res = preg_match($p, parse_url($url)['host'], $m);
+	    if($res && count($m) >= 2){
+		    return $m[1];
+	    } else {
+	    	return "";
+	    }
+	} else {
+		return "";
+	}
+}
+
 function checkExit()
 {
 	if(is_file("exit")){
 		er('You chose to terminate the task.');
 		exit();
+	}
+}
+
+function checkUrlByHost($url, $bh)
+{
+	if($bh == ""){return true;}
+	$config = getFile(Apps . DS . ConfigFile);
+	if(isset($config['byhost'])){
+		$bhb = $config['byhost'];
+		if($bhb){
+			if(parse_url($url)['host'] == $bh){
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return true;
+		}
+
+	} else {
+		return true;
 	}
 }
 
@@ -801,11 +863,12 @@ function checkUrlExc($url)
 
 }
 
-function checkUrl($url, $ad = true)
+function checkUrl($url, $ad = true, $bh = "")
 {
 	checkExit();
 	//预判url
 	if(!checkUrlExc($url)){return 0;}
+	if(!checkUrlByHost($url, $bh)){return 0;}
 	//End 预判
 	//返回url状态码
 	$ch = curl_init($url);

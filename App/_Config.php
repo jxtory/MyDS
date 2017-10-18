@@ -17,6 +17,9 @@ return [
 		'.gif',
 		'.png',
 		'www.w3.org',
-	]
+		'www.hao123.com'
+	],
+	'byhost' => true,
+	'clearOld' => true
 
 ];
