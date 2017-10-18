@@ -828,7 +828,8 @@ function checkUrlByHost($url, $bh)
 	if(isset($config['byhost'])){
 		$bhb = $config['byhost'];
 		if($bhb){
-			if(parse_url($url)['host'] == $bh){
+			// if(parse_url($url)['host'] == $bh){
+			if(getHostDomain($url) == $bh){
 				return true;
 			} else {
 				return false;
