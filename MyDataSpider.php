@@ -824,8 +824,18 @@ function getFile($file)
 
 function getHostDomain($url)
 {
+	$config = getFile(Apps . DS . ConfigFile);
 	if(parse_url($url)){
 	    $p = '/\w*\.(\w*\.\w*)/i';
+
+		if(isset($config['byhost_lang'])){
+			if($config['byhost_lang'] == true){
+				return parse_url($url)['host'];
+
+			} else {
+			    $p = '/\w*\.(\w*\.\w*)/i';
+			}
+		}
 	    $res = preg_match($p, parse_url($url)['host'], $m);
 	    if($res && count($m) >= 2){
 		    return $m[1];
