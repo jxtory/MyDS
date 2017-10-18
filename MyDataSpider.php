@@ -94,13 +94,14 @@ class Mds
 		$this->validatas = getFile(Apps . DS . ValidatasFile);
 
 		//初始化数据
+		$this->info_FindUrl = 0;
+		$this->info_RecordTotal = 0;
 		//设置时区
 		if(isset($this->config['timezone']) || !empty($this->config['timezone'])){
 			date_default_timezone_set($this->config['timezone']);
 		} else {
 			date_default_timezone_set('Asia/Shanghai');
 		}
-
 
 		if(empty($this->headers)){$this->headers = array("null");}
 
@@ -130,13 +131,7 @@ class Mds
 	{
 
 		//记录运行信息
-		$this->info_EndDate = time();
-		$this->info_RunDate = $this->info_EndDate - $this->info_StartDate;
-		$res = $this->opMysqladdToRL($this->info_StartDate, $this->info_EndDate, $this->info_RunDate, $this->info_FindUrl, $this->info_RecordTotal);
-		if($res){
-			echo "Log write successful";
-			er();
-		}
+		$this->writeLog();
 		//End 记录运行信息
 
 		//卸载数据库
@@ -198,9 +193,9 @@ class Mds
 		echo "SeedUrl:\t" . $this->seedUrl;
 		er();
 		//End Show
-		//统计时间
-		$this->info_StartDate = time();
-		//End 统计时间
+		// //统计时间
+		// $this->info_StartDate = time();
+		// //End 统计时间
 		//初始化URL-List任务库
 		$this->opMysqltcult();
 		$this->opMysqltcAll(); // 可选的
@@ -223,7 +218,13 @@ class Mds
 			$this->nextUrl = $su;
 			if(preg_match(rxUrl, $su) == 1){
 				while($this->nextUrl != null){
+					//统计时间
+					$this->info_StartDate = time();
+					//End 统计时间
 					$this->loopMode($this->nextUrl);
+					//记录运行信息
+					$this->writeLog();
+					//End 记录运行信息
 				}
 				// echo "Done or nextUrl is null. The end.";
 				er();
@@ -311,6 +312,17 @@ class Mds
 			//end debug
 		}
 		//End从任务库中删除本次的任务url
+		//懒惰模式!如果没有内容，则放弃这个URL-List
+		if(isset($this->config['lazyMode'])){
+			if($this->config['lazyMode'] == true){
+				$datacount = count($datas);
+				if($datacount < 3){
+					$finishdatas = "pass";
+					return $finishdatas;
+				}
+			}
+		}
+		//End 懒惰模式!如果没有内容，则放弃这个URL-List
 
 		//新添加URL-List
 		$urls = $datas[1];
@@ -367,7 +379,7 @@ class Mds
 
 			$datacount = count($datas);
 
-			if($datacount < 2){
+			if($datacount < 3){
 				$finishdatas = "pass";
 				return $finishdatas;
 			} else {
@@ -762,13 +774,12 @@ class Mds
 			}
 
 			foreach($regex as $key => $value){
-				preg_match_all($value, $contents, $data);
-				$datas[] = $data[$rxopt[$key]];
+				$res = preg_match_all($value, $contents, $data);
+				if($res > 0){
+					$datas[] = $data[$rxopt[$key]];
+				}
 			}
-
-
 			return $datas;
-
 		}
 
 		if($mode == "DOM"){
@@ -776,6 +787,19 @@ class Mds
 			er();
 		}
 
+	}
+
+	private function writeLog()
+	{
+		$this->info_EndDate = time();
+		$this->info_RunDate = $this->info_EndDate - $this->info_StartDate;
+		$res = $this->opMysqladdToRL($this->info_StartDate, $this->info_EndDate, $this->info_RunDate, $this->info_FindUrl, $this->info_RecordTotal);
+		if($res){
+			echo "Log write successful";
+			er();
+		}
+		$this->info_FindUrl = 0;
+		$this->info_RecordTotal = 0;
 	}
 
 }

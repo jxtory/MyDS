@@ -20,6 +20,7 @@ return [
 		'www.hao123.com'
 	],
 	'byhost' => true,
-	'clearOld' => true
+	'clearOld' => true,
+	'lazyMode' => true,
 
 ];
