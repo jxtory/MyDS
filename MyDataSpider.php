@@ -17,9 +17,17 @@ define('rxUrl', '/((https|http|ftp|rtsp|mms)?:\/\/)[^\s|\"]+/');
 define('rxDepth', '/[1-9]{2}/');
 define('rxDomain', '/(\w*\.)?(\w*\.[com|cn|com\.cn|gov|org]*){1,3}/i');
 define('rxTitle', '/<title>(.*)<\/title>/');
-
+//end regex
+define('cUtf8', 'utf8');
+define('cGbk', 'gbk');
 // 注释区
 // define('rxUrl', '/(http|https|ftp):\/\/[A-Za-z0-9]+\.[A-Za-z0-9]+[\/=\?%\-&_~`@[\]\’:+!]*([^<>\”])*/');
+// – character_set_server：默认的内部操作字符集
+// – character_set_client：客户端来源数据使用的字符集
+// – character_set_connection：连接层字符集
+// – character_set_results：查询结果字符集
+// – character_set_database：当前选中数据库的默认字符集
+// – character_set_system：系统元数据(字段名等)字符集
 //End 注释区
 class Mds
 {
@@ -459,7 +467,17 @@ class Mds
 			echo "MySql Connnect Error:" . $this->mysql->connect_error;
 			return false;
 		} else {
-			$this->mysql->set_charset("utf8");
+			$chars = cUtf8;
+			$chars2 = cGbk;
+			$this->mysql->set_charset($chars);
+			$this->opMysqlQuery("set character set '{$chars}'");
+			$this->opMysqlQuery("set names '{$chars}'");
+			$this->opMysqlQuery("set character_set_server = '{$chars}'");
+			$this->opMysqlQuery("set character_set_client = '{$chars2}'");
+			$this->opMysqlQuery("set character_set_connection = '{$chars}'");
+			$this->opMysqlQuery("set character_set_results = '{$chars}'");
+			$this->opMysqlQuery("set character_set_database = '{$chars}'");
+			$this->opMysqlQuery("set character_set_system = '{$chars}'");
 			return true;
 		}
 	}
@@ -470,6 +488,13 @@ class Mds
 		if($this->app_debug){er($sql);}
 		//end debug
 		$result = $this->mysql->query($sql);
+		//debug 
+		if($this->app_debug){
+			if($this->mysql->error && $this->mysql->errno){
+				er("Mysql Error:\t" . $this->mysql->errno . ":\t" . $this->mysql->error);
+			}
+		}
+		//end debug
 		return $result;
 	}
 
@@ -546,7 +571,7 @@ class Mds
 	private function opMysqladdToVU($url, $od, $title = "unknown", $hsc = "unknown", $fs = "unknown", $oid = 0)
 	{
 		$eurl = md5($url);
-		$sql = "insert into {$this->table_vu}(url, encryption_url, title, on_depth, http_statuscode, filesize, oid) value(\"{$url}\", \"{$eurl}\", \"{$title}\", {$od}, \"{$hsc}\", \"{$fs}\", {$oid})";
+		$sql = "insert into {$this->table_vu}(url, encryption_url, title, on_depth, http_statuscode, filesize, oid) values(\"{$url}\", \"{$eurl}\", \"{$title}\", {$od}, \"{$hsc}\", \"{$fs}\", {$oid})";
 		$res = $this->opMysqlQuery($sql);
 
 		if($res){
