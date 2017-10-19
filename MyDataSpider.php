@@ -15,6 +15,7 @@ define('ValidatasFile', '_Validatas.php');
 //regex;
 define('rxUrl', '/((https|http|ftp|rtsp|mms)?:\/\/)[^\s|\"]+/');
 define('rxDepth', '/[1-9]{2}/');
+define('rxDomain', '/(\w*\.)?(\w*\.[com|cn|com\.cn|gov|org]*){1,3}/i');
 define('rxTitle', '/<title>(.*)<\/title>/');
 
 // 注释区
@@ -791,6 +792,8 @@ class Mds
 
 	private function writeLog()
 	{
+		//如果结果数为空，则放弃记录日志。
+		if($this->info_FindUrl == 0 && $this->info_RecordTotal == 0){return;}
 		$this->info_EndDate = time();
 		$this->info_RunDate = $this->info_EndDate - $this->info_StartDate;
 		$res = $this->opMysqladdToRL($this->info_StartDate, $this->info_EndDate, $this->info_RunDate, $this->info_FindUrl, $this->info_RecordTotal);
@@ -798,8 +801,10 @@ class Mds
 			echo "Log write successful";
 			er();
 		}
+		//计数器清零
 		$this->info_FindUrl = 0;
 		$this->info_RecordTotal = 0;
+		return;
 	}
 
 }
@@ -826,19 +831,17 @@ function getHostDomain($url)
 {
 	$config = getFile(Apps . DS . ConfigFile);
 	if(parse_url($url)){
-	    $p = '/\w*\.(\w*\.\w*)/i';
-
+	    // $p = '/\w*\.(\w*\.\w*)/i';
+		//(\w*\.)*(\w*.){1,2}
 		if(isset($config['byhost_lang'])){
 			if($config['byhost_lang'] == true){
 				return parse_url($url)['host'];
-
-			} else {
-			    $p = '/\w*\.(\w*\.\w*)/i';
 			}
 		}
-	    $res = preg_match($p, parse_url($url)['host'], $m);
+
+	    $res = preg_match(rxDomain, parse_url($url)['host'], $m);
 	    if($res && count($m) >= 2){
-		    return $m[1];
+		    return $m[2];
 	    } else {
 	    	return "";
 	    }
