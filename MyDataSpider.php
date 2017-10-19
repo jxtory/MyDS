@@ -477,7 +477,7 @@ class Mds
 			$this->opMysqlQuery("set character_set_connection = '{$chars}'");
 			$this->opMysqlQuery("set character_set_results = '{$chars}'");
 			$this->opMysqlQuery("set character_set_database = '{$chars}'");
-			$this->opMysqlQuery("set character_set_system = '{$chars}'");
+			// $this->opMysqlQuery("set character_set_system = '{$chars}'");
 			return true;
 		}
 	}
