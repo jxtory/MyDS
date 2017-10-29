@@ -384,6 +384,7 @@ class Mds
 		if($validataMode = "regex"){
 			foreach ($regexs as $key => $value) {
 				$regex[] = $value;
+				$regexk[] = $key;
 			}
 
 			$datacount = count($datas);
@@ -397,6 +398,7 @@ class Mds
 					$temp = null;
 					$temp[] = $regex[$j];
 					$temp[] = $datas[$i];
+					$temp[] = $regexk[$j];
 					$j++;
 					// foreach ($datas[$i] as $key => $value) {
 					// 	echo $i . "|" . $key . "=>" . $value;
@@ -467,13 +469,22 @@ class Mds
 			echo "MySql Connnect Error:" . $this->mysql->connect_error;
 			return false;
 		} else {
+			if(isset($this->config['ClientCharacter']) && !empty($this->config['ClientCharacter'])){
+				$cc = $this->config['ClientCharacter'];
+			} else {
+				$cc = "utf8";
+			}
 			$chars = cUtf8;
 			$chars2 = cGbk;
 			$this->mysql->set_charset($chars);
 			$this->opMysqlQuery("set character set '{$chars}'");
 			$this->opMysqlQuery("set names '{$chars}'");
 			$this->opMysqlQuery("set character_set_server = '{$chars}'");
-			$this->opMysqlQuery("set character_set_client = '{$chars2}'");
+			if($cc == "utf8"){
+				$this->opMysqlQuery("set character_set_client = '{$chars}'");
+			} else if ($cc == "gbk"){
+				$this->opMysqlQuery("set character_set_client = '{$chars2}'");
+			}
 			$this->opMysqlQuery("set character_set_connection = '{$chars}'");
 			$this->opMysqlQuery("set character_set_results = '{$chars}'");
 			$this->opMysqlQuery("set character_set_database = '{$chars}'");
@@ -514,7 +525,7 @@ class Mds
 		}
 	}
 
-	private function opMysqladdToSD($cs = "", $rod = "", $fu = "", $oud = 0)
+	private function opMysqladdToSD($cs = "", $rod = "", $fu = "", $oud = 0, $rodAsname = "")
 	{
 		//判断内容重复
 		$sql = "select contents from {$this->table_sd} where contents = \"{$cs}\" and from_url = \"{$fu}\"";
@@ -525,12 +536,12 @@ class Mds
 			}
 		}
 		//添加内容到数据表
-		$sql = "insert into {$this->table_sd}(contents, ruleordom, from_url, on_Url_depth) ";
+		$sql = "insert into {$this->table_sd}(contents, ruleordom, rod_asname, from_url, on_Url_depth) ";
 		// $sql .= "values(\"{$cs}\", \"{$rod}\", \"{$fu}\", {$oud})";
-		$sql .= "values(?, ?, ?, ?)";
+		$sql .= "values(?, ?, ?, ?, ?)";
 		// $res = $this->opMysqlQuery($sql);
 		$mstmt = $this->opMysqlPrepare($sql);
-		$mstmt->bind_param("sssi", $cs, $rod, $fu, $oud);
+		$mstmt->bind_param("ssssi", $cs, $rod, $rodAsname, $fu, $oud);
 		$rb = $mstmt->execute();
 		$mstmt->free_result();
 		$mstmt->close();
@@ -712,7 +723,7 @@ class Mds
 						er();
 					}
 					//end debug
-					$res = $this->opMysqladdToSD($value, $datas[$i][0], $this->curUrl, $this->curDepth);
+					$res = $this->opMysqladdToSD($value, $datas[$i][0], $this->curUrl, $this->curDepth, $datas[$i][2]);
 					//debug
 					if($this->app_debug){
 						if($res){

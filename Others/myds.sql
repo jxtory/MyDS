@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: 2017-10-10 22:18:55
+-- Generation Time: 2017-10-29 02:59:04
 -- 服务器版本： 5.7.14
 -- PHP Version: 5.6.25
 
@@ -45,6 +45,7 @@ CREATE TABLE `myds_spider_datas` (
   `id` int(11) NOT NULL COMMENT 'id',
   `contents` text COMMENT 'contents',
   `ruleordom` text COMMENT 'htmllabel',
+  `rod_asname` varchar(50) DEFAULT NULL COMMENT 'RuleOrDom AsName',
   `from_url` varchar(1024) DEFAULT NULL COMMENT 'from_url',
   `on_Url_depth` int(2) DEFAULT NULL COMMENT 'on_url_depth'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
